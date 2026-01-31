@@ -62,13 +62,18 @@ def select_folder():
     for c in range(columns):
         inner_frame.grid_columnconfigure(c, weight=1)
 
+def unselect_all():
+    for _, var, _, frame in items:
+        var.set(0)
+        frame.config(highlightthickness=0)
+
 def process_selected():
     target = get_target_size()
     selected = [p for p, v, _, _ in items if v.get()]
     if not selected:
         messagebox.showinfo("No selection", "No images selected for processing.")
         return
-    resized_dir = os.path.join(folder, "resized")
+    resized_dir = os.path.join(folder, f"resized_{target}")
     os.makedirs(resized_dir, exist_ok=True)
     count = 0
     for p in selected:
@@ -99,17 +104,14 @@ def process_selected():
 root = tk.Tk()
 root.title("Image Preview and Resize")
 root.geometry("1400x900")
-
 top = tk.Frame(root)
 top.pack(fill=tk.X, pady=10)
 tk.Button(top, text="Select Image Folder", command=select_folder).pack(side=tk.LEFT, padx=20)
 lbl_folder = tk.Label(top, text="No folder selected yet")
 lbl_folder.pack(side=tk.LEFT, padx=20)
-
 tk.Label(top, text="Max long side (px):").pack(side=tk.LEFT)
 target_size_var = tk.StringVar(value="1024")
 tk.Entry(top, textvariable=target_size_var, width=8).pack(side=tk.LEFT, padx=5)
-
 canvas_frame = tk.Frame(root)
 canvas_frame.pack(fill=tk.BOTH, expand=True)
 canvas = tk.Canvas(canvas_frame, bg="white")
@@ -117,17 +119,15 @@ scroll = tk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=canvas.yview)
 canvas.configure(yscrollcommand=scroll.set)
 scroll.pack(side=tk.RIGHT, fill=tk.Y)
 canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
 inner_frame = tk.Frame(canvas)
 canvas.create_window((0, 0), window=inner_frame, anchor=tk.NW)
 inner_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-
 canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-e.delta / 120), "units"))
 canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
 canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
-
 bottom = tk.Frame(root)
 bottom.pack(fill=tk.X, pady=10)
-tk.Button(bottom, text="Process Selected Images", command=process_selected).pack(pady=10)
-
+tk.Button(bottom, text="Unselect all", command=unselect_all).pack(side=tk.LEFT, padx=20)
+tk.Button(bottom, text="Process Selected Images", command=process_selected).pack(side=tk.LEFT, padx=20)
 root.mainloop()
+
