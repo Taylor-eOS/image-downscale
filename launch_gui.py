@@ -76,7 +76,10 @@ def process_selected():
     resized_dir = os.path.join(folder, f"resized_{target}")
     os.makedirs(resized_dir, exist_ok=True)
     count = 0
-    for p in selected:
+    to_remove = []
+    for p, var, photo, frame in items:
+        if not var.get():
+            continue
         try:
             im = Image.open(p)
             w, h = im.size
@@ -97,9 +100,17 @@ def process_selected():
                 else:
                     rim.save(save_p)
             count += 1
+            to_remove.append((p, var, photo, frame))
         except Exception as e:
             print(f"Error processing {p}: {e}")
-    messagebox.showinfo("Completed", f"Processed {count} images to max {target} px.\nSaved to {resized_dir}")
+    for item in to_remove:
+        if item in items:
+            items.remove(item)
+        item[3].destroy()
+    if count > 0:
+        messagebox.showinfo("Completed", f"Processed {count} images to max {target} px.\nSaved to {resized_dir}\nRemoved from view.")
+    else:
+        messagebox.showinfo("Completed", "No images were successfully processed.")
 
 root = tk.Tk()
 root.title("Image Preview and Resize")
@@ -122,12 +133,16 @@ canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 inner_frame = tk.Frame(canvas)
 canvas.create_window((0, 0), window=inner_frame, anchor=tk.NW)
 inner_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-e.delta / 120), "units"))
-canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
-canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+def on_mouse_wheel(event):
+    if event.num == 4 or event.delta > 0:
+        canvas.yview_scroll(-1, "units")
+    elif event.num == 5 or event.delta < 0:
+        canvas.yview_scroll(1, "units")
+canvas.bind_all("<MouseWheel>", on_mouse_wheel)
+canvas.bind_all("<Button-4>", on_mouse_wheel)
+canvas.bind_all("<Button-5>", on_mouse_wheel)
 bottom = tk.Frame(root)
 bottom.pack(fill=tk.X, pady=10)
 tk.Button(bottom, text="Unselect all", command=unselect_all).pack(side=tk.LEFT, padx=20)
 tk.Button(bottom, text="Process Selected Images", command=process_selected).pack(side=tk.LEFT, padx=20)
 root.mainloop()
-
